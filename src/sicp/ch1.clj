@@ -175,4 +175,111 @@
 
 ;;; Exercise 1.28
 
+(defn mill-rabin-expmod [base exp m]
+  "base^exp mod m adapted for use in the Miller-Rabin test"
+  (cond (= exp 0) 1
+        (even? exp) (let [itr (mill-rabin-expmod base (/ exp 2) m)
+                          sqr (square itr)]
+                      (if (and (not= itr 1)
+                               (not= itr (dec m))
+                               (= sqr (mod 1 m)))
+                        0
+                        (mod sqr m)))
+        :else (mod (* base (mill-rabin-expmod base (dec exp) m))
+                   m)))
 
+(defn mr-fermat-test [n]
+  (let [rand (int (inc (rand (dec n))))]
+    (= (mill-rabin-expmod rand (dec n) n) (mod 1 n))))
+
+(defn mr-fast-prime? [n times]
+  (every? mr-fermat-test
+          (take times (repeat n))))
+
+(let [in [1 2 3 4 5 6 7 9 561 1105]
+      out [false, true, true, false, true, false, true, false, false, false]]
+  (= out (map #(mr-fast-prime? % 20) in)))
+
+;;; Exercise 1.29
+
+(defn sum [term a next b]
+  (if (> a b)
+    0
+    (+ (term a)
+       (sum term (next a) next b))))
+
+(defn simp-integral [f a b n]
+  (let [h (/ (- b a) n)]
+    (defn term [k]
+      (* (f (+ a (* k h)))
+         (if (even? k) 2 4)))
+    (/ (* h
+          (+ a (sum term 1 inc n)))
+       3)))
+
+;;; Exercise 1.30
+
+(defn sum-it [term a next b]
+  (loop [a a
+         acc 0]
+    (if (> a b) acc
+        (recur (next a) (+ acc (term a))))))
+
+;;; Exercise 1.31
+
+(defn product [term a next b]
+  (if (> a b)
+    1
+    (* (term a)
+       (product term (next a) next b))))
+
+(defn product [term a next b]
+  (loop [a a
+         acc 1]
+    (if (> a b) acc
+        (recur (next a) (* acc (term a))))))
+
+(defn product [term a next b]
+  (reduce * 1
+          (map term (take-while #(<= % b)
+                                (iterate next a)))))
+
+;;; Exercise 1.32
+
+(defn accumulate [combiner null-value term a next b]
+  (loop [a a
+         acc null-value]
+    (if (> a b) acc
+        (recur (next a) (combiner acc (term a))))))
+
+(defn accumulate [combiner null-value term a next b]
+  (if (> a b) null-value
+      (combiner (term a)
+                (accumulate combiner null-value term (next a) next b))))
+
+(defn sum [term a next b]
+  (accumulate + 0 term a next b))
+
+(defn product [term a next b]
+  (accumulate * 1 term a next b))
+
+;;; Exercise 1.33
+
+(defn accumulate [pred combiner null-value term a next b]
+  (loop [a a
+         acc null-value]
+    (if (> a b) acc
+        (recur (next a)
+               (if (pred a) (combiner acc (term a)) acc)))))
+
+(defn sum-squares-primes [a b]
+  (accumulate prime? + 0 square a inc b))
+
+(defn ex-1-33-b [n]
+  (accumulate #(= (gcd % n) 1)
+              * 0 identity 1 inc (dec n)))
+
+;;; Exercise 1.34
+
+(defn f [g]
+  (g 2))
