@@ -283,3 +283,158 @@
 
 (defn f [g]
   (g 2))
+
+;;; Exercise 1.35
+
+(def tolerance 0.000001)
+
+(defn fixed-point [f first-guess]
+  (defn close-enough? [v1 v2]
+    (< (Math/abs (- v1 v2)) tolerance))
+  (defn try-it [guess]
+    (let [next (f guess)]
+      (if (close-enough? guess next)
+        next
+        (try-it next))))
+  (try-it first-guess))
+
+(def phi (fixed-point #(+ 1 (/ 1 %)) 1.0))
+
+;;; Exercise 1.36
+
+(defn fixed-point [f first-guess]
+  (defn close-enough? [v1 v2]
+    (< (Math/abs (- v1 v2)) tolerance))
+  (defn try-it [guess]
+    (println "trying " guess)
+    (let [next (f guess)]
+      (if (close-enough? guess next)
+        next
+        (try-it next))))
+  (try-it first-guess))
+
+(def ex-1-36-answer (fixed-point #(/ (Math/log 1000)
+                                     (Math/log %)) 1.1))
+
+(def ex-1-36-avg-damped
+  (fixed-point #(/ (+ %
+                      (/ (Math/log 1000)
+                           (Math/log %)))
+                   2) 1.1))
+
+;;; Exercise 1.37
+
+(defn cont-frac [n d k]
+  (defn help [i]
+    (if (= i k) (/ (n i) (d i))
+        (/ (n i)
+           (+ (d i)
+              (help (inc i))))))
+  (help 1))
+
+(defn cont-frac [n d k]
+  (loop [k k
+         acc 0]
+    (if (< k 1) acc
+        (recur (dec k) (/ (n k) (+ (d k) acc))))))
+
+;;; Exercise 1.38
+
+(defn d [i]
+  (let [i (dec i)
+        idx (mod i 3)]
+    (cond (= idx 0) 1
+          (= idx 2) 1
+          (= idx 1) (* (/ (+ i 2) 3) 2))))
+
+(+ (cont-frac (fn [i] 1.0) d 90) 2)
+
+;;; Exercise 1.39
+
+(defn tan-cf [x k]
+  (cont-frac #(if (> % 1) (* -1 (square x)) x)
+             #(- (* % 2) 1)
+             k))
+
+;;; Exercise 1.40
+
+(def dx 0.00001)
+
+(defn deriv [g]
+  (fn [x]
+    (/ (- (g (+ x dx)) (g x))
+       dx)))
+
+(defn newton-transform [g]
+  (fn [x]
+    (- x (/ (g x) ((deriv g) x)))))
+
+(defn newtons-method [g guess]
+  (fixed-point (newton-transform g) guess))
+
+(defn cubic [a b c]
+  (fn [x]
+    (+ (* x x x)
+       (* a x x)
+       (* b x)
+       c)))
+
+(< ((cubic 1 2 3) (newtons-method (cubic 1 2 3) 1.0))
+   0.00001)
+
+;;; Exercise 1.41
+
+(defn double [f]
+  (fn [x]
+    (f (f x))))
+
+(((double (double double)) inc) 5)
+
+;;; Exercise 1.42
+
+(defn compose [f g]
+  (fn [x]
+    (f (g x))))
+
+((compose square inc) 6)
+
+;;; Exercise 1.43
+
+(defn repeated [f n]
+  (if (= n 1) f
+      (compose f (repeated f (dec n)))))
+
+(defn repeated [f n]
+  (fn [x]
+    (last (take (inc n) (iterate f x)))))
+
+((repeated square 2) 5)
+
+;;; Exercise 1.44
+
+(defn smooth [f]
+  (fn [x]
+    (/ (+ (f (- x dx))
+          (f x)
+          (f (+ x dx))))))
+
+(defn n-fold-smooth [f n]
+  (repeated (smooth f) n))
+
+;;; Exercise 1.46
+
+(defn iterative-improve [good-enough? improve]
+  (fn [guess]
+    (loop [guess guess]
+      (if (good-enough? guess) guess
+          (recur (improve guess))))))
+
+(defn sqrt [x]
+  ((iterative-improve #(< (Math/abs (- (square %) x)) 0.0001)
+                      #(/ (+ % (/ x %)) 2))
+   x))
+
+(defn fixed-point [f guess]
+  ((iterative-improve #(< (Math/abs (- (f %) %)) 0.0001)
+                      #(f %))
+   guess))
