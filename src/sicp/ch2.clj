@@ -182,3 +182,120 @@
 
 (defn for-each [f coll]
   (doall (map f coll)) nil)
+
+;;; Exercise 2.27
+
+(defn deep-reverse [coll]
+  (if (vector? coll)
+    (map deep-reverse (reverse coll))
+    coll))
+
+;;; Exercise 2.28
+
+;;; looking back, I may have jumped the gun here :)
+(defn depth-first-tree-map [f tree]
+  (if (seq? tree)
+    (if (seq? (first tree))
+      (concat (depth-first-tree-map f (first tree))
+              (depth-first-tree-map f (next tree)))
+      (cons (f (first tree))
+            (depth-first-tree-map f (next tree))))
+    nil))
+
+(defn fringe [tree]
+  (depth-first-tree-map identity tree))
+
+;;; Exercise 2.29
+
+(defn make-mobile [l r]
+  (list l r))
+(defn make-branch [length structure]
+  (list length structure))
+(defn left-branch [mobile]
+  (first mobile))
+(defn right-branch [mobile]
+  (second mobile))
+(defn branch-length [branch]
+  (first branch))
+(defn branch-structure [branch]
+  (second branch))
+(defn is-mobile? [mobile]
+  (list? mobile))
+
+(defn total-weight [mobile]
+  (if (is-mobile? mobile)
+    (let [l-branch-struct (branch-structure (left-branch mobile))
+          r-branch-struct (branch-structure (right-branch mobile))]
+      (+ (if (list? l-branch-struct)
+           (total-weight l-branch-struct)
+           l-branch-struct)
+         (if (list? r-branch-struct)
+           (total-weight r-branch-struct)
+           r-branch-struct)))
+    mobile))
+
+(defn mobile-balanced? [mobile]
+  (defn torque [length weight] (* length weight))
+  (if (not (is-mobile? mobile)) true
+      (let [l (left-branch mobile)
+            r (right-branch mobile)]
+        (and (= (torque (branch-length l)
+                        (total-weight (branch-structure l)))
+                (torque (branch-length r)
+                        (total-weight (branch-structure r))))
+             (mobile-balanced? (branch-structure l))
+             (mobile-balanced? (branch-structure r))))))
+
+;;; Exercise 2.30
+
+(defn square-tree [tree]
+  (cond (nil? tree) nil
+        (seq? tree) (cons (square-tree (first tree))
+                          (square-tree (next tree)))
+        :else (* tree tree)))
+
+(defn square-tree [tree]
+  (if (seq? tree)
+    (map square-tree tree)
+    (* tree tree)))
+
+;;; Exercise 2.31
+
+(defn tree-map [f tree]
+  (if (seq? tree)
+    (map f tree)
+    (f tree)))
+
+(defn square-list [tree]
+  (tree-map square tree))
+
+;;; Exercise 2.32
+
+(defn subsets [s]
+  (if (nil? s) '(())
+      (let [rest (subsets (next s))]
+        (concat rest
+                (map #(cons (first s) %) rest)))))
+
+;;; Exercise 2.33
+
+(defn my-map [f coll]
+  (reduce #(concat %1 (list (f %2))) '() coll))
+
+(defn my-append [coll1 coll2]
+  (reduce conj coll2 (reverse coll1)))
+
+(defn my-length [coll]
+  (reduce (fn [x y] (inc x)) 0 coll))
+
+;;; Exercise 2.34
+
+(defn accumulate [op init coll]         ;foldr
+  (if (nil? coll) init
+      (op (first coll)
+          (accumulate op init (next coll)))))
+
+(defn horner-eval [x coefficient-sequence]
+  (accumulate #(+ (* %2 x) %1) 0 coefficient-sequence))
+
+;;; Exercise 2.35
