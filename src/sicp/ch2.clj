@@ -299,3 +299,140 @@
   (accumulate #(+ (* %2 x) %1) 0 coefficient-sequence))
 
 ;;; Exercise 2.35
+
+(defn count-leaves [coll]
+  (accumulate #(if (list? %1)
+                 (+ (count-leaves %1) %2)
+                 (inc %2))
+              0 coll))
+
+(defn count-leaves [coll]
+  (accumulate + 0 (map #(if (list? %)
+                          (count-leaves %) 1)
+                       coll)))
+
+;;; Exercise 2.36
+
+(defn accumulate-n [op init coll]
+  (if (nil? (first coll))
+    nil
+    (cons (accumulate op init (map first coll))
+          (accumulate-n op init (map next coll)))))
+
+;;; Exercise 2.37
+
+(defn dot-product [v w]
+  (accumulate + 0 (map * v w)))
+
+(defn matrix-*-vector [m v]
+  (map (partial dot-product v) m))
+
+(defn matrix-*-matrix [m n]
+  (let [cols (transpose n)]
+    (map (fn [row] (map #(dot-product row %) cols)) m)))
+
+(defn transpose [m]
+  (accumulate-n cons nil m))
+
+;;; Exercise 2.39
+
+(defn my-reverse [coll]
+  (accumulate #(concat %2 (list %1)) nil coll))
+
+(defn my-reverse [coll]
+  (accumulate #(conj %2 %1) [] coll))
+
+(defn my-reverse [coll]
+  (reduce #(cons %2 %1) nil coll))
+
+;;; Exercise 2.40
+
+(defn unique-pairs [n]
+  (mapcat (fn [x]
+         (map (partial list x)
+              (range (inc x) (inc n))))
+       (range 1 n)))
+
+(defn unique-pairs [n]
+  (for [x (range 1 n) y (range (inc x) (inc n))]
+    [x y]))
+
+;;; Exercise 2.41
+
+(defn unique-triples [n]
+  (for [x (range 1 (dec n))
+        y (range (inc x) n)
+        z (range (inc y) (inc n))]
+    [x y z]))
+
+(defn sum [coll]
+  (reduce + 0 coll))
+
+(defn ex-2-41 [n s]
+  (let [trips (unique-triples n)]
+    (filter #(= (sum %) s) trips)))
+
+;;; Exercise 2.42
+
+(defn queens [board-size]
+  (defn queen-cols [k]
+    (defn adjoin-position [row col queens]
+      (cons row queens))
+    (def empty-board nil)
+    (defn safe? [k [trial & queens]]
+      (and (not (some #{trial} queens))
+           (last (reduce #(let [[k1 k2 acc] %1]
+                            [(dec k1) (inc k2)
+                             (and acc (not= %2 k1) (not= %2 k2))])
+                         [(dec trial) (inc trial) true]
+                         queens))))
+    (if (= k 0)
+      (list empty-board)
+      (filter #(safe? k %)
+              (mapcat (fn [rest-of-queens]
+                        (map (fn [row]
+                               (adjoin-position row k rest-of-queens))
+                             (range 1 (inc board-size))))
+                      (queen-cols (dec k))))))
+  (queen-cols board-size))
+
+;;; Exercise 2.44
+
+(defn up-split [painter n]
+  (if (= n 0) painter
+      (let [smaller (up-split painter (dec n))]
+        (below painter
+               (beside smaller smaller)))))
+
+;;; Exercise 2.45
+
+(defn split [a b]
+  (fn ret [painter n]
+    (if (= n 0)
+      (let [smaller (ret painter (dec n))]
+        (a painter (b smaller smaller))))))
+
+;;; Exercise 2.46
+
+(defn make-vect [x y] [x y])
+
+(def xcor-vect first)
+(def ycor-vect second)
+
+(defn add-vect [v1 v2] (map + v1 v2))
+(defn sub-vect [v1 v2] (map - v1 v2))
+(defn scale-vect [v s] (map (partial * s) v))
+
+;;; Exercise 2.47
+
+(defn make-frame [origin e1 e2] [origin e1 e2])
+(def get-origin first)
+(def get-edge-1 second)
+(def get-edge-2 #(nth % 2))
+
+(defn make-frame [origin e1 e2] [origin [e1 e2]])
+(def get-origin first)
+(def get-edge-1 (comp first second))
+(def get-edge-2 (comp second second))
+
+;;; Exercise 2.48
