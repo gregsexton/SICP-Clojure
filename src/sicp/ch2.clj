@@ -509,3 +509,88 @@
 
 ;;; Exercise 2.56
 
+(def variable? symbol?)
+(def same-variable? #(and (variable? %1)
+                          (variable? %2)
+                          (= %1 %2)))
+
+(defn =number? [exp num]
+  (and (number? exp)
+       (= exp num)))
+
+(defmacro def-binary-op [symbol constructor
+                         test left right constructor-exprs]
+  `(do
+     (defn ~constructor [~left ~right]
+       (cond ~@constructor-exprs
+             :else (list '~symbol ~left ~right)))
+     (def ~test #(and (list? %) (= (first %) '~symbol)))
+     (def ~left second)
+     (def ~right #(nth % 2))))
+
+(def-binary-op + make-sum sum? addend augend
+  [(=number? addend 0) augend
+   (=number? augend 0) addend
+   (and (number? addend) (number? augend)) (+ addend augend)])
+
+(def-binary-op * make-product product? multiplier multiplicand
+  [(or (=number? multiplier 0)
+       (=number? multiplicand 0)) 0
+   (=number? multiplier 1) multiplicand
+   (=number? multiplicand 1) multiplier
+   (and (number? multiplicand) (number? multiplier)) (* multiplicand multiplier)])
+
+(def-binary-op ** make-exponentiation exponentiation? base exponent
+  [(=number? base 1) 1
+   (=number? exponent 1) exponent
+   (=number? exponent 0) 1])
+
+(defn deriv [exp var]
+  (cond (number? exp) 0
+        (variable? exp) (if (same-variable? exp var) 1 0)
+        (sum? exp) (make-sum (deriv (addend exp) var)
+                             (deriv (augend exp) var))
+        (product? exp) (make-sum
+                        (make-product (multiplier exp)
+                                      (deriv (multiplicand exp) var))
+                        (make-product (deriv (multiplier exp) var)
+                                      (multiplicand exp)))
+        (exponentiation? exp) (make-product
+                               (make-product
+                                (exponent exp)
+                                (make-exponentiation (base exp)
+                                                     (dec (exponent exp))))
+                               (deriv (base exp) var))
+        :else nil))
+
+;;; Exercise 2.57
+
+(defmacro def-left-assoc-binary-op [symbol constructor
+                                    test left right constructor-exprs]
+  `(do
+     (defn ~constructor [~left & right#]
+       (if (nil? right#) ~left
+           (let [~right (apply ~constructor right#)]
+             (cond ~@constructor-exprs
+                   :else (if (~test ~right)
+                           (concat (list '~symbol ~left) (rest ~right))
+                           (list '~symbol ~left ~right))))))
+     (def ~test #(and (list? %) (= (first %) '~symbol)))
+     (def ~left second)
+     (defn ~right [[_# _# e# & es#]]
+       (if (nil? es#) e#
+         (apply ~constructor e# es#)))))
+
+(def-left-assoc-binary-op + make-sum sum? addend augend
+  [(=number? addend 0) augend
+   (=number? augend 0) addend
+   (and (number? addend) (number? augend)) (+ addend augend)])
+
+(def-left-assoc-binary-op * make-product product? multiplier multiplicand
+  [(or (=number? multiplier 0)
+       (=number? multiplicand 0)) 0
+   (=number? multiplier 1) multiplicand
+   (=number? multiplicand 1) multiplier
+   (and (number? multiplicand) (number? multiplier)) (* multiplicand multiplier)])
+
+;;; Exercise 2.59
