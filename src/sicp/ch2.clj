@@ -594,3 +594,139 @@
    (and (number? multiplicand) (number? multiplier)) (* multiplicand multiplier)])
 
 ;;; Exercise 2.59
+
+(defn element-of-set? [x set]
+  (some (partial = x) set))
+
+(defn adjoin-set [x set]
+  (if (element-of-set? x set) set
+      (cons x set)))
+
+(defn union-set [set1 set2]
+  (reduce #(adjoin-set %2 %1) set1 set2))
+
+;;; Exercise 2.60
+
+(defn element-of-set? [x set]
+  (some (partial = x) set))
+
+(defn adjoin-set [x set]
+  (cons x set))
+
+(defn intersection-set [set1 set2]
+  (filter #(element-of-set? % set1) set2))
+
+(defn union-set [set1 set2]
+  (reduce #(adjoin-set %2 %1) set1 set2))
+
+;;; Exercise 2.61
+
+(defn adjoin-set [x set]
+  (let [[prefix suffix] (split-with #(< % x) set)]
+    (if (= x (first suffix)) set
+        (concat prefix (list x) suffix))))
+
+;;; Exercise 2.62
+
+(defn union-set [[s & ss :as s1] [t & ts :as s2]]
+  (cond (nil? s1) s2
+        (nil? s2) s1
+        (= s t) (cons s (union-set ss ts))
+        (> s t) (cons t (union-set s1 ts))
+        :else (cons s (union-set ss s2))))
+
+;;; Exercise 2.67
+
+(defn make-leaf [symbol weight]
+  (list :leaf symbol weight))
+
+(defn leaf? [object]
+  (= (first object) :leaf))
+(def symbol-leaf (comp first rest))
+(def weight-leaf (comp second rest))
+
+(defn make-code-tree [l r]
+  (list l r (concat (symbols l)
+                    (symbols r))
+        (+ (weight l) (weight r))))
+(def left-branch first)
+(def right-branch second)
+(defn symbols [tree]
+  (if (leaf? tree)
+    (list (symbol-leaf tree))
+    (second (rest tree))))
+(defn weight [tree]
+  (if (leaf? tree)
+    (weight-leaf tree)
+    (second (rest (rest tree)))))
+
+(defn decode [bits tree]
+  (loop [bits bits
+         branch tree
+         acc []]
+    (if (nil? bits) acc
+      (let [next-branch (choose-branch (first bits) branch)]
+        (if (leaf? next-branch)
+          (recur (next bits) tree
+                 (conj acc (symbol-leaf next-branch)))
+          (recur (next bits) next-branch acc))))))
+
+(defn choose-branch [bit branch]
+  (cond (= bit 0) (left-branch branch)
+        (= bit 1) (right-branch branch)
+        :else (throw (IllegalArgumentException.
+                      (format "Bit was %d, should be either 0 or 1." bit)))))
+
+(def sample-tree
+  (make-code-tree (make-leaf 'A 4)
+                  (make-code-tree
+                   (make-leaf 'B 2)
+                   (make-code-tree (make-leaf 'D 1)
+                                   (make-leaf 'C 1)))))
+
+(def sample-message '(0 1 1 0 0 1 0 1 0 1 1 1 0))
+
+;;; Exercise 2.68
+
+(defn encode [message tree]
+  (reduce #(concat %1 (encode-symbol %2 tree)) [] message))
+
+(defn encode-symbol [symbol tree]
+  (loop [symbol symbol
+         tree tree
+         acc []]
+    (if (leaf? tree)
+      (if (some #{symbol} (symbols tree))
+        acc
+        (throw (RuntimeException. "Symbol not in tree.")))
+      (let [lsym (symbols (left-branch tree))
+            rsym (symbols (right-branch tree))]
+        (cond
+         (some #{symbol} lsym)
+         (recur symbol (left-branch tree) (conj acc 0))
+         (some #{symbol} rsym)
+         (recur symbol (right-branch tree) (conj acc 1))
+         :else (throw (RuntimeException. "Symbol not in tree.")))))))
+
+;;; Exercise 2.69
+
+(defn adjoin-set [set x]
+  (cond (empty? set) (list x)
+        (< (weight x) (weight (first set))) (cons x set)
+        :else (cons (first set)
+                    (adjoin-set (rest set) x))))
+
+(defn make-leaf-set [pairs]
+  (reduce #(adjoin-set % (make-leaf (first %2)
+                                    (second %2)))
+          '()
+          pairs))
+
+(defn generate-huffman-tree [pairs]
+  (successive-merge (make-leaf-set pairs)))
+
+(defn successive-merge [leaves]
+  (let [[l r & coll] leaves]
+    (if coll
+      (recur (adjoin-set coll (make-code-tree l r)))
+      (make-code-tree l r))))
