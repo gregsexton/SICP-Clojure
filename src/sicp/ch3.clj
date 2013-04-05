@@ -168,6 +168,70 @@
      (assoc (apply alist-map keyvals)
        k v)))
 
-;;; Exercise 3.28
+;;; Exercise 3.47
+
+(defn make-mutex [name]
+  (fn [op]
+    (println name " mutex: " op)))
+
+;;; I _think_ this would work
+(defn make-semaphore [n]
+  (let [sem-mutex (make-mutex "sem")
+        serial-mutex (make-mutex "serial")
+        n (atom n)]
+    (defn semaphore [op]
+      (serial-mutex :aquire)
+      (let [current @n]
+        (condp = op
+          :aquire (if (<= current 0)
+                    (do
+                      (serial-mutex :release)
+                      (sem-mutex :aquire) ;should block
+                      (sem-mutex :release)
+                      (semaphore :aquire))
+                    (do
+                      (reset! n (dec current))
+                      (when (= (dec current) 0)
+                        (sem-mutex :aquire)) ;should not block, should be available
+                      (serial-mutex :release)))
+          :release (do
+                     (reset! n (inc current))
+                     (sem-mutex :release) ;should be a noop if not aquired
+                     (serial-mutex :release)))))
+    semaphore))
+
+;;; Exercise 3.50
+
+(defn stream-map [proc & argstreams]
+  (lazy-seq
+   (if (empty? (first argstreams)) '()
+       (cons
+        (apply proc (map first argstreams))
+        (apply stream-map (cons proc (map rest argstreams)))))))
+
+;;; Exercise 3.54
+
+(defn sieve [stream]
+  (lazy-seq
+   (cons
+    (first stream)
+    (sieve (filter #(not= 0 (mod % (first stream)))
+                   (rest stream))))))
+
+(def primes (sieve (iterate inc 2)))
+
+(def factorials
+  (lazy-seq
+   (cons 1
+         (map * factorials (iterate inc 2)))))
+
+;;; Exercise 3.55
+
+(defn partial-sums [coll]
+  (lazy-seq
+   (cons (first coll)
+         (map + (partial-sums coll) (rest coll)))))
+
+;;; Exercise 3.63
 
 
