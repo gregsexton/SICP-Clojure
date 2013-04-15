@@ -85,10 +85,11 @@
                  (expand-clauses r))))))
 (def cond->if (comp expand-clauses cond-clauses))
 
+(def primitive-procedure? #(tagged-list? % 'primitive))
+(def primitve-implementation second)
+
 (defn apply-primitive-procedure [proc args]
-  'define-me)
-(defn primitive-procedure? [proc]
-  'define-me)
+  (apply (primitve-implementation proc) args)) ;this is the underlying apply not the one defined here
 
 (defn make-procedure [params body env]
   (list 'procedure params body env))
@@ -197,6 +198,46 @@
 ;;                (list-of-values (operands exp) env))
 ;;         :else (throw (RuntimeException.
 ;;                       (format "Unknown expression: %s" exp)))))
+
+(def primitive-procedures
+  `((car ~first)
+    (cdr ~rest)
+    (cons ~cons)
+    (null? ~nil?)
+    (+ ~+)))
+(def primitive-procedure-names (map first primitive-procedures))
+(def primitive-procedure-objects (map second primitive-procedures))
+
+(defn setup-environment []
+  (let [initial-env (extend-environment primitive-procedure-names
+                                        primitive-procedure-objects
+                                        the-empty-environment)]
+    (define-variable! 'true true initial-env)
+    (define-variable! 'false false initial-env)
+    initial-env))
+
+(def the-global-environment (setup-environment))
+
+(def input-prompt "> ")
+(def output-prompt ">> ")
+
+(def prompt-for-input #(print (newline) (newline) % (newline)))
+(def announce-output #(print (newline) % (newline)))
+
+(defn user-print [object]
+  (if (compound-procedure? object)
+    (print (list 'compound-procedure
+                 (procedure-parameters object)
+                 (procedure-body object)
+                 '<procedure-env>))
+    (print object)))
+
+(defn driver-loop []
+  (prompt-for-input input-prompt)
+  (let [input (read)
+        output (eval input the-global-environment)]
+    (announce-output output-prompt)
+    (user-print output)))
 
 ;;; Exercise 4.1
 
