@@ -231,7 +231,3 @@
   (lazy-seq
    (cons (first coll)
          (map + (partial-sums coll) (rest coll)))))
-
-;;; Exercise 3.63
-
-
