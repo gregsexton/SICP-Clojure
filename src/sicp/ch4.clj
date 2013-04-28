@@ -367,3 +367,23 @@
                     [1 2 3 4 5]
                     [1 2 3 4 5]]) ; => [3 2 4 5 1]
 
+;;; Exercise 4.42
+
+(defn xor [a b]
+  (or (and a (not b))
+      (and (not a) b)))
+
+(defn satisfies? [b e j k m]
+  (and
+   (distinct? b e j k m)
+   (xor (= k 2) (= b 3))
+   (xor (= e 1) (= j 2))
+   (xor (= j 3) (= e 5))
+   (xor (= k 2) (= m 4))
+   (xor (= m 4) (= b 1))))
+
+(search satisfies? [[1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]]) ; => [3 5 2 1 4]
