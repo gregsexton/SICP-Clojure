@@ -334,3 +334,36 @@
   (eval (let->combination (second exp)
                           (nth exp 2))
         env))
+
+;;; Exercise 4.41
+
+(defn satisfies? [baker cooper fletcher miller smith]
+  (and
+   (distinct? baker cooper fletcher miller smith)
+   (not= baker 5)
+   (not= cooper 1)
+   (not= fletcher 5)
+   (not= fletcher 1)
+   (> miller cooper)
+   (not= (Math/abs (- smith fletcher)) 1)
+   (not= (Math/abs (- fletcher cooper)) 1)))
+
+(defn search [pred choices]
+  (defn help [args [possibles & more]]
+    (when (seq possibles)
+      (if more
+        (some #(help % more)
+              (map #(conj args %) possibles))
+        (let [sat (first (filter
+                          (apply partial pred args)
+                          possibles))]
+          (when sat
+            (conj args sat))))))
+  (help [] choices))
+
+(search satisfies? [[1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]
+                    [1 2 3 4 5]]) ; => [3 2 4 5 1]
+
