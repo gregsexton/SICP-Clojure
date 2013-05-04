@@ -387,3 +387,25 @@
                     [1 2 3 4 5]
                     [1 2 3 4 5]
                     [1 2 3 4 5]]) ; => [3 5 2 1 4]
+
+;;; Continuation-passing style search implementation in the same
+;;; manner as section 4.3.3
+
+(defn check [pred args fail]
+  (if (apply pred args) args (fail)))
+
+(defn dfs [[choices & more] success fail]
+  (if (seq choices)
+    (success [(first choices) more]
+             #(dfs (cons (rest choices) more) success fail))
+    (fail)))
+
+(defn search [pred choices]
+  (defn help [args choices fail]
+    (dfs choices
+         (fn [[choice more] fail2]
+           (if (seq more)
+             (help (conj args choice) more fail2)
+             (check pred (conj args choice) fail2)))
+         fail))
+  (help [] choices (fn [] :not-found)))
