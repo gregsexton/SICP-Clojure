@@ -349,17 +349,17 @@
    (not= (Math/abs (- fletcher cooper)) 1)))
 
 (defn search [pred choices]
-  (defn help [args [possibles & more]]
-    (when (seq possibles)
-      (if more
-        (some #(help % more)
-              (map #(conj args %) possibles))
-        (let [sat (first (filter
-                          (apply partial pred args)
-                          possibles))]
-          (when sat
-            (conj args sat))))))
-  (help [] choices))
+  (letfn [(help [args [possibles & more]]
+            (when (seq possibles)
+              (if more
+                (some #(help % more)
+                      (map #(conj args %) possibles))
+                (let [sat (first (filter
+                                  (apply partial pred args)
+                                  possibles))]
+                  (when sat
+                    (conj args sat))))))]
+    (help [] choices)))
 
 (search satisfies? [[1 2 3 4 5]
                     [1 2 3 4 5]
@@ -401,11 +401,11 @@
     (fail)))
 
 (defn search [pred choices]
-  (defn help [args choices fail]
-    (dfs choices
-         (fn [[choice more] fail2]
-           (if (seq more)
-             (help (conj args choice) more fail2)
-             (check pred (conj args choice) fail2)))
-         fail))
-  (help [] choices (fn [] :not-found)))
+  (letfn [(help [args choices fail]
+            (dfs choices
+                 (fn [[choice more] fail2]
+                   (if (seq more)
+                     (help (conj args choice) more fail2)
+                     (check pred (conj args choice) fail2)))
+                 fail))]
+    (help [] choices (fn [] :not-found))))

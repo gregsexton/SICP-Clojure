@@ -8,42 +8,42 @@
 ;;; Exercise 1.3
 
 (defn sum-square-larger [a b c]
-  (defn square [n] (* n n))
-  (- (apply + (map square (vector a b c)))
-     (square (min a b c))))
+  (letfn [(square [n] (* n n))]
+    (- (apply + (map square (vector a b c)))
+       (square (min a b c)))))
 
 ;;; Exercise 1.7
 
 (defn sqrt [n]
-  (defn good-enough? [old-guess new-guess]
-    (< (/ (Math/abs (- old-guess new-guess))
-          old-guess)
-       0.001))
-  (defn improve [guess]
-    (defn average [x y] (/ (+ x y) 2))
-    (average guess (/ n guess)))
-  (defn help [guess]
-    (let [new (improve guess)]
-      (if (good-enough? guess new) new
-          (help new))))
-  (help 1.0))
+  (letfn [(good-enough? [old-guess new-guess]
+            (< (/ (Math/abs (- old-guess new-guess))
+                  old-guess)
+               0.001))
+          (average [x y] (/ (+ x y) 2))
+          (improve [guess]
+            (average guess (/ n guess)))
+          (help [guess]
+            (let [new (improve guess)]
+              (if (good-enough? guess new) new
+                  (help new))))]
+    (help 1.0)))
 
 ;;; Exercise 1.8
 
 (defn cbrt [x]
-  (defn cbrt-iter [guess x]
-    (defn cube [x]
-      (Math/pow x 3))
-    (defn good-enough? [guess x]
-      (< (Math/abs (- (cube guess) x)) 0.001))
-    (defn improve [guess x]
-      (/ (+ (/ x (* guess guess))
-            (* 2 guess))
-         3))
-    (if (good-enough? guess x)
-      guess
-      (cbrt-iter (improve guess x) x)))
-  (cbrt-iter 1.0 x))
+  (letfn [(cbrt-iter [guess x]
+            (letfn [(cube [x]
+                      (Math/pow x 3))
+                    (good-enough? [guess x]
+                      (< (Math/abs (- (cube guess) x)) 0.001))
+                    (improve [guess x]
+                      (/ (+ (/ x (* guess guess))
+                            (* 2 guess))
+                         3))])
+            (if (good-enough? guess x)
+              guess
+              (cbrt-iter (improve guess x) x)))]
+    (cbrt-iter 1.0 x)))
 
 ;;; Exercise 1.11
 
@@ -54,11 +54,11 @@
          (f-rec (- n 3)))))
 
 (defn f-iter [n]
-  (defn f-help [n1 n2 n3 cnt]
-    (if (= cnt n) (+ n1 n2 n3)
-        (f-help n2 n3 (+ n1 n2 n3) (inc cnt))))
-  (if (< n 3) n
-      (f-help 0 1 2 3)))
+  (letfn [(f-help [n1 n2 n3 cnt]
+            (if (= cnt n) (+ n1 n2 n3)
+                (f-help n2 n3 (+ n1 n2 n3) (inc cnt))))]
+    (if (< n 3) n
+        (f-help 0 1 2 3))))
 
 ;;; Exercise 1.12
 
@@ -81,11 +81,11 @@
 (defn square [n] (* n n))
 
 (defn fast-expt-iter [b n]
-  (defn help [a b n]
-    (cond (= n 0) a
-          (even? n) (help a (square b) (/ n 2))
-          (odd? n) (help (* a b) b (dec n))))
-  (help 1 b n))
+  (letfn [(help [a b n]
+            (cond (= n 0) a
+                  (even? n) (help a (square b) (/ n 2))
+                  (odd? n) (help (* a b) b (dec n))))]
+    (help 1 b n)))
 
 (every? identity
         (for [x (range 0 10) y (range 0 10)]
@@ -106,27 +106,27 @@
 ;;; Exercise 1.18
 
 (defn fast-mult-iter [a b]
-  (defn help [a b c]
-    (cond (= b 0) c
-          (even? b) (help (double a) (halve b) c)
-          (odd? b) (help a (dec b) (+ c a))))
-  (help a b 0))
+  (letfn [(help [a b c]
+            (cond (= b 0) c
+                  (even? b) (help (double a) (halve b) c)
+                  (odd? b) (help a (dec b) (+ c a))))]
+    (help a b 0)))
 
 ;;; Exercise 1.19
 
 (defn fib [n]
-  (defn fib-iter [a b p q count]
-    (cond (= count 0) b
-          (even? count) (fib-iter a b
-                                  (+ (* p p) (* q q))
-                                  (+ (* q q) (* 2 p q))
-                                  (/ count 2))
-          :else (fib-iter (+ (* b q) (* a q) (* a p))
-                          (+ (* b p) (* a q))
-                          p
-                          q
-                          (- count 1))))
-  (fib-iter 1 0 0 1 n))
+  (letfn [(fib-iter [a b p q count]
+            (cond (= count 0) b
+                  (even? count) (fib-iter a b
+                                          (+ (* p p) (* q q))
+                                          (+ (* q q) (* 2 p q))
+                                          (/ count 2))
+                  :else (fib-iter (+ (* b q) (* a q) (* a p))
+                                  (+ (* b p) (* a q))
+                                  p
+                                  q
+                                  (- count 1))))]
+    (fib-iter 1 0 0 1 n)))
 
 ;;; Exercise 1.22
 
@@ -154,14 +154,14 @@
 ;;; Exercise 1.23
 
 (defn smallest-divisor [n]
-  (defn find-divisor [test]
-    (defn next-test [n]
-      (if (= n 2) 3
-          (+ n 2)))
-    (cond (> (square test) n) n
-          (= (mod n test) 0) test
-          :else (find-divisor (next-test test))))
-  (find-divisor 2))
+  (letfn [(find-divisor [test]
+            (letfn [(next-test [n]
+                      (if (= n 2) 3
+                          (+ n 2)))]
+              (cond (> (square test) n) n
+                    (= (mod n test) 0) test
+                    :else (find-divisor (next-test test)))))]
+    (find-divisor 2)))
 
 (defn prime? [n]
   (= n (smallest-divisor n)))
@@ -210,12 +210,12 @@
 
 (defn simp-integral [f a b n]
   (let [h (/ (- b a) n)]
-    (defn term [k]
-      (* (f (+ a (* k h)))
-         (if (even? k) 2 4)))
-    (/ (* h
-          (+ a (sum term 1 inc n)))
-       3)))
+    (letfn [(term [k]
+              (* (f (+ a (* k h)))
+                 (if (even? k) 2 4)))]
+      (/ (* h
+            (+ a (sum term 1 inc n)))
+         3))))
 
 ;;; Exercise 1.30
 
@@ -289,29 +289,29 @@
 (def tolerance 0.000001)
 
 (defn fixed-point [f first-guess]
-  (defn close-enough? [v1 v2]
-    (< (Math/abs (- v1 v2)) tolerance))
-  (defn try-it [guess]
-    (let [next (f guess)]
-      (if (close-enough? guess next)
-        next
-        (try-it next))))
-  (try-it first-guess))
+  (letfn [(close-enough? [v1 v2]
+            (< (Math/abs (- v1 v2)) tolerance))
+          (try-it [guess]
+            (let [next (f guess)]
+              (if (close-enough? guess next)
+                next
+                (try-it next))))]
+    (try-it first-guess)))
 
 (def phi (fixed-point #(+ 1 (/ 1 %)) 1.0))
 
 ;;; Exercise 1.36
 
 (defn fixed-point [f first-guess]
-  (defn close-enough? [v1 v2]
-    (< (Math/abs (- v1 v2)) tolerance))
-  (defn try-it [guess]
-    (println "trying " guess)
-    (let [next (f guess)]
-      (if (close-enough? guess next)
-        next
-        (try-it next))))
-  (try-it first-guess))
+  (letfn [(close-enough? [v1 v2]
+            (< (Math/abs (- v1 v2)) tolerance))
+          (try-it [guess]
+            (println "trying " guess)
+            (let [next (f guess)]
+              (if (close-enough? guess next)
+                next
+                (try-it next))))]
+    (try-it first-guess)))
 
 (def ex-1-36-answer (fixed-point #(/ (Math/log 1000)
                                      (Math/log %)) 1.1))
@@ -325,12 +325,12 @@
 ;;; Exercise 1.37
 
 (defn cont-frac [n d k]
-  (defn help [i]
-    (if (= i k) (/ (n i) (d i))
-        (/ (n i)
-           (+ (d i)
-              (help (inc i))))))
-  (help 1))
+  (letfn [(help [i]
+            (if (= i k) (/ (n i) (d i))
+                (/ (n i)
+                   (+ (d i)
+                      (help (inc i))))))]
+    (help 1)))
 
 (defn cont-frac [n d k]
   (loop [k k

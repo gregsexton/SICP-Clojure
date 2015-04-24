@@ -36,41 +36,41 @@
 
 (defn make-monitored [f]                ;works for any number of args
   (let [count (atom 0)]
-    (defn call [& args]
-      (swap! count inc)
-      (apply f args))
-    (fn
-      ([] (call))
-      ([x] (cond (= x :how-many-calls?) count
-                 (= x :reset) (reset! count 0)
-                 :else (call x)))
-      ([x & xs] (apply call x xs)))))
+    (letfn [(call [& args]
+              (swap! count inc)
+              (apply f args))]
+      (fn
+        ([] (call))
+        ([x] (cond (= x :how-many-calls?) count
+                   (= x :reset) (reset! count 0)
+                   :else (call x)))
+        ([x & xs] (apply call x xs))))))
 
 ;;; Exercise 3.3/4
 
 (defn make-account [balance password]
   (let [balance (atom balance)
         attempts (atom 0)]
-    (defn call-the-cops []
-      (throw (RuntimeException. "Now you're in trouble...")))
-    (defn withdraw [amount]
-      (if (< @balance amount)
-        (throw (RuntimeException. "Insufficient funds"))
-        (swap! balance #(- % amount))))
-    (defn deposit [amount]
-      (swap! balance #(+ % amount)))
-    (defn dispatch [pass m]
-      (if (= pass password)
-        (do
-          (reset! attempts 0)
-          (cond (= m :withdraw) withdraw
-                (= m :deposit) deposit
-                :else (throw (RuntimeException. "Unknown request"))))
-        (do
-          (swap! attempts inc)
-          (if (> @attempts 7) (call-the-cops)
-              (throw (RuntimeException. "Password incorrect."))))))
-    dispatch))
+    (letfn [(call-the-cops []
+              (throw (RuntimeException. "Now you're in trouble...")))
+            (withdraw [amount]
+              (if (< @balance amount)
+                (throw (RuntimeException. "Insufficient funds"))
+                (swap! balance #(- % amount))))
+            (deposit [amount]
+              (swap! balance #(+ % amount)))
+            (dispatch [pass m]
+              (if (= pass password)
+                (do
+                  (reset! attempts 0)
+                  (cond (= m :withdraw) withdraw
+                        (= m :deposit) deposit
+                        :else (throw (RuntimeException. "Unknown request"))))
+                (do
+                  (swap! attempts inc)
+                  (if (> @attempts 7) (call-the-cops)
+                      (throw (RuntimeException. "Password incorrect."))))))]
+      dispatch)))
 
 ;;; Exercise 3.5
 
@@ -102,17 +102,17 @@
 
 (defn make-table []
   (let [local-table (atom {})]
-    (defn lookup [k1 k2]
-      (let [subtable (get @local-table k1)]
-        (when subtable
-          (get subtable k2))))
-    (defn insert! [k1 k2 val]
-      (let [subtable (get @local-table k1 {})]
-        (swap! local-table
-               assoc k1 (assoc subtable k2 val))))
-    (def dispatch-table {:lookup lookup
-                         :insert insert!})
-    #(% dispatch-table)))
+    (letfn [(lookup [k1 k2]
+              (let [subtable (get @local-table k1)]
+                (when subtable
+                  (get subtable k2))))
+            (insert! [k1 k2 val]
+              (let [subtable (get @local-table k1 {})]
+                (swap! local-table
+                       assoc k1 (assoc subtable k2 val))))]
+      (let [dispatch-table {:lookup lookup
+                            :insert insert!}]
+        #(% dispatch-table)))))
 
 (deftype Alist [eq? contents]
   clojure.lang.IPersistentMap
@@ -179,26 +179,26 @@
   (let [sem-mutex (make-mutex "sem")
         serial-mutex (make-mutex "serial")
         n (atom n)]
-    (defn semaphore [op]
-      (serial-mutex :aquire)
-      (let [current @n]
-        (condp = op
-          :aquire (if (<= current 0)
-                    (do
-                      (serial-mutex :release)
-                      (sem-mutex :aquire) ;should block
-                      (sem-mutex :release)
-                      (semaphore :aquire))
-                    (do
-                      (reset! n (dec current))
-                      (when (= (dec current) 0)
-                        (sem-mutex :aquire)) ;should not block, should be available
-                      (serial-mutex :release)))
-          :release (do
-                     (reset! n (inc current))
-                     (sem-mutex :release) ;should be a noop if not aquired
-                     (serial-mutex :release)))))
-    semaphore))
+    (letfn [(semaphore [op]
+              (serial-mutex :aquire)
+              (let [current @n]
+                (condp = op
+                  :aquire (if (<= current 0)
+                            (do
+                              (serial-mutex :release)
+                              (sem-mutex :aquire) ;should block
+                              (sem-mutex :release)
+                              (semaphore :aquire))
+                            (do
+                              (reset! n (dec current))
+                              (when (= (dec current) 0)
+                                (sem-mutex :aquire)) ;should not block, should be available
+                              (serial-mutex :release)))
+                  :release (do
+                             (reset! n (inc current))
+                             (sem-mutex :release) ;should be a noop if not aquired
+                             (serial-mutex :release)))))]
+      semaphore)))
 
 ;;; Exercise 3.50
 

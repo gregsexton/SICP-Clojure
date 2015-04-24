@@ -235,16 +235,16 @@
     mobile))
 
 (defn mobile-balanced? [mobile]
-  (defn torque [length weight] (* length weight))
-  (if (not (is-mobile? mobile)) true
-      (let [l (left-branch mobile)
-            r (right-branch mobile)]
-        (and (= (torque (branch-length l)
-                        (total-weight (branch-structure l)))
-                (torque (branch-length r)
-                        (total-weight (branch-structure r))))
-             (mobile-balanced? (branch-structure l))
-             (mobile-balanced? (branch-structure r))))))
+  (letfn [(torque [length weight] (* length weight))]
+    (if (not (is-mobile? mobile)) true
+        (let [l (left-branch mobile)
+              r (right-branch mobile)]
+          (and (= (torque (branch-length l)
+                          (total-weight (branch-structure l)))
+                  (torque (branch-length r)
+                          (total-weight (branch-structure r))))
+               (mobile-balanced? (branch-structure l))
+               (mobile-balanced? (branch-structure r)))))))
 
 ;;; Exercise 2.30
 
@@ -375,25 +375,25 @@
 ;;; Exercise 2.42
 
 (defn queens [board-size]
-  (defn queen-cols [k]
-    (defn adjoin-position [row col queens]
-      (cons row queens))
-    (def empty-board nil)
-    (defn safe? [k [trial & queens]]
-      (and (not (some #{trial} queens))
-           (last (reduce #(let [[k1 k2 acc] %1]
-                            [(dec k1) (inc k2)
-                             (and acc (not= %2 k1) (not= %2 k2))])
-                         [(dec trial) (inc trial) true]
-                         queens))))
-    (if (= k 0)
-      (list empty-board)
-      (filter #(safe? k %)
-              (mapcat (fn [rest-of-queens]
-                        (map (fn [row]
-                               (adjoin-position row k rest-of-queens))
-                             (range 1 (inc board-size))))
-                      (queen-cols (dec k))))))
+  (letfn [(queen-cols [k]
+            (letfn [(adjoin-position [row col queens]
+                      (cons row queens))
+                    (empty-board nil)
+                    (safe? [k [trial & queens]]
+                      (and (not (some #{trial} queens))
+                           (last (reduce #(let [[k1 k2 acc] %1]
+                                            [(dec k1) (inc k2)
+                                             (and acc (not= %2 k1) (not= %2 k2))])
+                                         [(dec trial) (inc trial) true]
+                                         queens))))]
+              (if (= k 0)
+                (list empty-board)
+                (filter #(safe? k %)
+                        (mapcat (fn [rest-of-queens]
+                                  (map (fn [row]
+                                         (adjoin-position row k rest-of-queens))
+                                       (range 1 (inc board-size))))
+                                (queen-cols (dec k)))))))])
   (queen-cols board-size))
 
 ;;; Exercise 2.44
